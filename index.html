@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        table th {
+            background-color: aqua;
+        }
+
+        .table-class {
+            font-size: large;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .completed {
+            background-color: green;
+            color: yellow;
+        }
+
+        .notCompleted {
+            background-color: red;
+            color: white;
+        }
+    </style>
+
+</head>
+
+<body>
+
+
+    <select onchange="orderBy(event)">
+        <option value="0">Sıralama</option>
+        <option value="asc">A-Z</option>
+        <option value="desc">Z-A</option>
+    </select>
+
+
+    <select onchange="filterBy(event)">
+        <option value="all">All</option>
+        <option value="true">Completed</option>
+        <option value="false">Not Completed</option>
+    </select>
+
+    <table id="todoTable">
+        <thead id="tableHead">
+
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+
+
+    <script>
+
+       // sayfa açıldığında todoları load eder.
+        window.onload = () => {
+            loadTodos();
+        }
+
+        var todos = []; // tüm todo listesi için var
+        var filteredTodos = []; // filtrelenmiş todoları tutmak için olan global değişken
+
+        // fetch ile tüm todoları çektik
+        loadTodos = () => {
+
+            fetch('https://jsonplaceholder.typicode.com/todos')
+                .then(response => response.json())
+                .then(json => {
+                    // eğer js dizisi ile çalışıyorsa spread operatörü kullanarak dizideki verileri diğer diziye aşağıdaki gibi çekelim.
+
+
+                    // c# daki select'in aynısı veriyi çekerken veriyi manupüle edip belirli alanları değiştirdik ve istediğimiz formata çektik.
+                    json = [...json.map(item => {
+                        return {
+
+                            ...item,
+                            completedText: item.completed === false ? 'Not Completed Yet' : 'Completed'
+                        }
+                    })];
+
+                    // console.log('json', json);
+
+                    todos = [...json];
+
+
+
+                    renderTableItems(todos);
+
+
+                    console.log('todos', todos);
+                })
+
+        }
+
+        // filtrelenmiş olan dataları veya tüm datayı table row render eder.
+        renderTableItems = (dataSource) => {
+
+
+            const todoTable = document.getElementById('todoTable');
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+
+
+
+            tableHead.innerHTML = `<th>Title</th> <th>Completed</th>`;
+            // js ile border attribute değiştirdik.
+            todoTable.setAttribute("border", 1);
+            todoTable.setAttribute("class", "table-class");
+            // js ile attribute değiştidik dinamik olarak class verdik.
+
+            // JS ile table inline stil uygulamış olduk.
+            todoTable.style.width = "100%";
+            todoTable.style.borderWidth = "1px";
+            todoTable.style.borderColor = "blue";
+            todoTable.style.borderStyle = "solid";
+            todoTable.style.borderCollapse = "collapse";
+
+
+            let tableRows = '';
+
+            // for of aynısı
+            dataSource.forEach(todoItem => {
+
+                tableRows += `<tr class="${todoItem?.completed ? 'completed' : 'notCompleted'}">
+                            <td style="padding:5px">${todoItem?.title}</td>
+                            <td style="padding:5px">${todoItem?.completedText}</td>
+                        </tr>`
+            });
+
+            tableBody.innerHTML = tableRows;
+
+
+        }
+
+        // key göre sıralama yapar.
+        function orderByKey(key, order = 'asc') {
+
+            return function innerSort(a, b) {
+                // nesne içerisinde gönderilen bir key yoksa zaten sıralama yapmamak için 0 döner.
+                if (!a.hasOwnProperty(key) || !b.hasOwnProperty(key)) return 0;
+                // string ,iki değeri birbileri ile kıyaslayıp 1, -1, 0 sonucu üretebiliriz. 1 sonucunda göre kıyaslanan ilk eleman önde -1 ise arkadadır. 0 ise aynı değere sahiptir.
+                const comparison = a[key].localeCompare(b[key]);
+
+                return (
+                    (order === 'desc') ? (comparison * -1) : comparison
+                );
+            };
+        }
+
+
+        // selecten seçilen değere göre asc desc sıralama yapar.
+        orderBy = (event) => {
+
+            const selectedValue = event.target.value;
+            console.log('selectedValue');
+
+            // bir sıralama seçimi yapılmış ise
+            // if(selectedValue !== "0") {
+
+            //     todos = [...todos.sort((a, b) => {
+            //     if (a.title.toLowerCase() > b.title.toLowerCase())
+            //         return 1;
+            //     else if (b.title.toLowerCase() > a.title.toLowerCase())
+            //         return -1;
+            //     else
+            //         return 0;
+
+            // })];
+
+            // if (selectedValue === "-1") {
+            //     todos = [...todos.reverse()];
+            // }
+
+            // ikinci yöntem
+
+            // filtere varsa
+
+
+
+            if (selectedValue != 0) {
+
+                // filtre varsa yoksa kontrolüne göre sıralama yaparız
+                if (filteredTodos.length > 0) {
+                    filteredTodos = [...filteredTodos.sort(orderByKey('title', selectedValue))];
+                    renderTableItems(filteredTodos);
+                } else {
+                    todos = [...todos.sort(orderByKey('title', selectedValue))];
+
+                    renderTableItems(todos);
+                }
+            }
+
+        }
+
+        // completed notcompleted alanlarına göre filtreleme yapar.
+        filterBy = (event) => {
+
+            // filtre seçilmemiş ise
+            if (event.target.value === "all"){
+                renderTableItems(todos);
+                filteredTodos = [];
+                // alldan sonra filtrelileri sıfırlamak için yazdık
+            }
+             
+            else {
+                // filtreden gelen değer string boolean'a çevirdik.
+                const filterValue = event.target.value == "true" ? true : false;
+                filteredTodos = [...todos.filter(x => x.completed == filterValue)]
+                renderTableItems(filteredTodos);
+            }
+
+        }
+
+    </script>
+</body>
+
+</html>
